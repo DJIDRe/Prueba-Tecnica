@@ -1,8 +1,13 @@
-
+/** @modules */
 import { paddockManagers, farms, paddockType, paddocks } from "./data";
 
 const unionPaddockFarms = joinPaddockFarms();
 
+/**
+ * @function joinPaddockFarms
+ * @description: "funtion for join data from farms, paddock types and managers"
+ * @returns: "returns a new object with merge info from managers asociated by farms and padock types"
+ */
 function joinPaddockFarms() {
     var farmsNewName = farms.map(farms => {
         return { farmId: farms.id, nameFarms: farms.name };
@@ -45,11 +50,21 @@ function joinPaddockFarms() {
 
 
 // 0 Arreglo con los ids de los responsables de cada cuartel
+/**
+ * @function listPaddockManagerIds
+ * @returns: "return an array of paddock managers ids" 
+ */
 function listPaddockManagerIds() {
     return paddockManagers.map((paddockManager) => paddockManager.id);
 };
 
 // 1 Arreglo con los ruts de los responsables de los cuarteles, ordenados por nombre
+/**
+ * @function listPaddockManagersByName
+ * @param  {bool} ascend=true
+ * @description: "function list all paddock managers name order by ascend mode"
+ * @returns: "return an array with all paddock managers ordered by name"
+ */
 function listPaddockManagersByName(ascend = true) {
     let managersAux_ = paddockManagers.slice(0, paddockManagers.length);
     let managersOrderByRut = managersAux_.sort(function (a, b) {
@@ -65,6 +80,13 @@ function listPaddockManagersByName(ascend = true) {
 };
 
 // 2 Arreglo con los nombres de cada tipo de cultivo, ordenados decrecientemente por la suma TOTAL de la cantidad de hectáreas plantadas de cada uno de ellos.
+/**
+ * @function sortPaddockTypeByTotalArea
+ * @description: "function for sort all paddock type by total area"
+ * @param  {Object} paddock=paddocks
+ * @param  {Object} type=paddockType
+ * @returns: "return an array with all paddock type sorted by total area"
+ */
 function sortPaddockTypeByTotalArea(paddock = paddocks, type = paddockType) {
     let totalBalanceByType = paddock.reduce((sumatory, eachElement) => {
         sumatory[eachElement.paddockTypeId] = (sumatory[eachElement.paddockTypeId] || 0) + eachElement.area;
@@ -87,6 +109,13 @@ function sortPaddockTypeByTotalArea(paddock = paddocks, type = paddockType) {
 }
 
 // 3 Arreglo con los nombres de los administradores, ordenados decrecientemente por la suma TOTAL de hectáreas que administran.
+/**
+ * @function sortFarmManagerByAdminArea
+ * @description: "function for sort paddock managers by total area they manages ordered decresent"
+ * @param  {Object} paddock=paddocks
+ * @param  {Object} farmer=paddockManagers
+ * @returns: "returns an array with all paddock managers sorted by total area they manages ordered decresent"
+ */
 function sortFarmManagerByAdminArea(paddock = paddocks, farmer = paddockManagers) {
     let totalBalanceByFarmer = paddock.reduce((sumatory, eachElement) => {
         sumatory[eachElement.paddockManagerId] = (sumatory[eachElement.paddockManagerId] || 0) + eachElement.area;
@@ -109,41 +138,68 @@ function sortFarmManagerByAdminArea(paddock = paddocks, farmer = paddockManagers
 }
 
 // 4 Objeto en que las claves sean los nombres de los campos y los valores un arreglo con los ruts de sus administradores ordenados alfabéticamente por nombre.
+/**
+ * @function farmManagerNames
+ * @description: "function wich farm names are key and value are an array with the tax number of paddock managers ordered by name alphabetic"
+ * @returns: "returns an object with the names of farms and the tax number of paddock managers ordered by name alphabetic"
+ */
 function farmManagerNames() {
-    var objectFarmManagersName = {};
-    for (let farm in farms) {
-        let nameFarmManagerByFarms = unionPaddockFarms.filter((farmer) => {
-            return farmer.nameFarms === farms[farm].name
-        }).map(farmer => farmer.name).sort()
 
-        let uniqueValueNameFarmerByFarm = Array.from(new Set(nameFarmManagerByFarms));
-        let farmerContainer = [];
-        for (let index in uniqueValueNameFarmerByFarm) {
-            existFarmer = paddockManagers.filter(farmer => {
-                return farmer.name === uniqueValueNameFarmerByFarm[index]
-            });
-            if (existFarmer.length > 0) {
-                farmerContainer.push(existFarmer[0]);
-            }
-        }
-        objectFarmManagersName[farms[farm].name] = farmerContainer.map(farmer => farmer.taxNumber);
-    }
-    return objectFarmManagersName;
+    const farmsById = farms.reduce(
+        (acc, val) => ({ ...acc, [val.id]: val }),
+        {}
+    );
+
+    const paddockManagersById = paddockManagers.reduce(
+        (acc, val) => ({ ...acc, [val.id]: val }),
+        {}
+    );
+
+    const paddockManagersByPaddock = paddocks.reduce((acc, val) => {
+        acc[farmsById[val.farmId].name] = (
+            acc[farmsById[val.farmId].name] ?? []
+        ).concat([paddockManagersById[val.paddockManagerId]]);
+        return acc;
+    }, {});
+
+    return Object.keys(paddockManagersByPaddock).reduce((acc, key) => {
+        acc[key] = Array.from(
+            new Set(
+                paddockManagersByPaddock[key]
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map((manager) => manager.taxNumber )
+            )
+        );
+        return acc;
+    }, {});
 }
 
 // 5 Arreglo ordenado decrecientemente con los m2 totales de cada campo que tengan más de 2 hectáreas en Paltos
+/**
+ * @function biggestAvocadoFarms
+ * @returns: "returns an array with all the avocado fields that are larger than 2 hectares in decreasing order"
+ */
 function biggestAvocadoFarms() {
     return unionPaddockFarms.filter(paddockType => paddockType.paddockTypeName === 'PALTOS' && paddockType.area > 20000)
         .map((paddocks) => paddocks.area).sort((a, b) => b - a);
 }
 
 // 6 Arreglo con nombres de los administradores de la FORESTAL Y AGRÍCOLA LO ENCINA, ordenados por nombre, que trabajen más de 1000 m2 de Cerezas
+/**
+ * @function biggestCherriesManagers
+ * @returns: "returns an array with names of the administrators of the FORESTAL Y AGRÍCOLA LO ENCINA, ordered by name, who work more than 1000 m2 of Cherries"
+ */
 function biggestCherriesManagers() {
     return unionPaddockFarms.filter(paddockType => paddockType.paddockTypeName === 'CEREZAS' && paddockType.area > 1000 && paddockType.nameFarms === 'FORESTAL Y AGRICOLA LO ENCINA')
         .map((paddocks) => paddocks.name).sort((a, b) => a - b);
 }
 
 // 7 Objeto en el cual las claves sean el nombre del administrador y el valor un arreglo con los nombres de los campos que administra, ordenados alfabéticamente
+/** 
+ * @function farmManagerPaddocks
+ * @description: "function in which the paddock managers are the object and the value is an array with the fields it manages in alphabetical order"
+ * @returns: "returns an object with the paddock managers as key is the name and value an array with the fields it manages in alphabetical order"
+ */
 function farmManagerPaddocks() {
     const paddockManagersById = paddockManagers.reduce((acc, val) => ({ ...acc, [val.id]: val }), {});
 
@@ -161,6 +217,11 @@ function farmManagerPaddocks() {
 }
 
 // 8 Objeto en que las claves sean el tipo de cultivo concatenado con su año de plantación (la concatenación tiene un separador de guión ‘-’, por ejemplo AVELLANOS-2020) y el valor otro objeto en el cual la clave sea el id del administrador y el valor el nombre del administrador
+/** 
+ * @function paddocksManagers
+ * @description: "function in which the keys are the type of crop concatenated with its planting year (the concatenation has a hyphen separator '-', for example AVELLANOS-2020) and the value another object in which the key is the id of the administrator and the value the name of the administrator"
+ * @returns: "returns an object with the key type of crop-year and the value the id of the administrator"
+ */
 function paddocksManagers() {
     const paddockTypesById = paddockType.reduce((acc, val) => ({ ...acc, [val.id]: val }), {});
 
@@ -180,6 +241,11 @@ function paddocksManagers() {
 // agregar un nuevo cuartel de tipo NOGALES con 900mts2, 
 // año 2017 de AGRICOLA SANTA ANA,
 // administrado por este nuevo administrador 
+/**
+ * @function newManagerRanking
+ * @description: "add a new data"
+ * @returns: "the new paddock manager returns and his position in the ranking under question 3"
+ */
 function newManagerRanking() {
     const newPaddockManager = { id: 7, taxNumber: "999999", name: "JANE DOE" };
     const newPaddockInfo = {
@@ -220,8 +286,8 @@ const tests = {
         fn: listPaddockManagerIds
     },
     1: {
-        description:"Arreglo con los ruts de los responsables de los cuarteles, ordenados por nombre.",
-        fn: listPaddockManagersByName   
+        description: "Arreglo con los ruts de los responsables de los cuarteles, ordenados por nombre.",
+        fn: listPaddockManagersByName
     },
     2: {
         description:
@@ -239,19 +305,19 @@ const tests = {
         fn: farmManagerNames
     },
     5: {
-        description:"Arreglo ordenado decrecientemente con los m2 totales de cada campo que tengan más de 2 hectáreas en Paltos",
+        description: "Arreglo ordenado decrecientemente con los m2 totales de cada campo que tengan más de 2 hectáreas en Paltos",
         fn: biggestAvocadoFarms
     },
     6: {
-        description:"Arreglo con nombres de los administradores de la FORESTAL Y AGRÍCOLA LO ENCINA, ordenados por nombre, que trabajen más de 1000 m2 de Cerezas",
+        description: "Arreglo con nombres de los administradores de la FORESTAL Y AGRÍCOLA LO ENCINA, ordenados por nombre, que trabajen más de 1000 m2 de Cerezas",
         fn: biggestCherriesManagers
     },
     7: {
-        description:"Objeto en el cual las claves sean el nombre del administrador y el valor un arreglo con los nombres de los campos que administra, ordenados alfabéticamente",
+        description: "Objeto en el cual las claves sean el nombre del administrador y el valor un arreglo con los nombres de los campos que administra, ordenados alfabéticamente",
         fn: farmManagerPaddocks
     },
     8: {
-        description:"Objeto en que las claves sean el tipo de cultivo concatenado con su año de plantación (la concatenación tiene un separador de guión ‘-’, por ejemplo AVELLANOS-2020) y el valor otro objeto en el cual la clave sea el id del administrador y el valor el nombre del administrador",
+        description: "Objeto en que las claves sean el tipo de cultivo concatenado con su año de plantación (la concatenación tiene un separador de guión ‘-’, por ejemplo AVELLANOS-2020) y el valor otro objeto en el cual la clave sea el id del administrador y el valor el nombre del administrador",
         fn: paddocksManagers
     },
     9: {
